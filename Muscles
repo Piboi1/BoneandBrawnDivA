@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bone & Brawn: Bio-Mecha Assembly</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700&display=swap');
+
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-green: #0aff0a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --dark-bg: #050b14;
+            --panel-border: 1px solid rgba(0, 243, 255, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--dark-bg);
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Particle Background Canvas */
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Header */
+        header {
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.6);
+            border-bottom: var(--panel-border);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+        }
+
+        .score-board {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--neon-green);
+        }
+
+        /* Main Interface */
+        main {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+            height: calc(100vh - 70px);
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--glass);
+            border: var(--panel-border);
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        /* Left Panel: The Muscle Bank */
+        .sidebar {
+            width: 250px;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-blue);
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--neon-blue);
+            padding-bottom: 5px;
+        }
+
+        .muscle-chip {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            color: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: grab;
+            transition: all 0.2s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .muscle-chip:hover {
+            background: var(--neon-blue);
+            color: black;
+            transform: translateX(10px);
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        .muscle-chip.used {
+            opacity: 0.3;
+            pointer-events: none;
+            text-decoration: line-through;
+            border-color: #555;
+        }
+
+        /* Center Panel: The Scanner */
+        .scanner {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .view-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .view-btn {
+            background: transparent;
+            border: 1px solid var(--neon-purple);
+            color: var(--neon-purple);
+            padding: 8px 20px;
+            font-family: 'Orbitron';
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .view-btn.active, .view-btn:hover {
+            background: var(--neon-purple);
+            color: white;
+            box-shadow: 0 0 15px var(--neon-purple);
+        }
+
+        .body-outline {
+            height: 80%;
+            aspect-ratio: 1/2;
+            position: relative;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400"><path d="M100,20 C120,20 135,35 135,55 C135,70 125,80 115,85 L145,95 L160,180 L140,190 L125,120 L125,200 L145,280 L140,360 L120,380 L100,350 L80,380 L60,360 L55,280 L75,200 L75,120 L60,190 L40,180 L55,95 L85,85 C75,80 65,70 65,55 C65,35 80,20 100,20 Z" fill="none" stroke="%2300f3ff" stroke-width="2" opacity="0.5"/></svg>') no-repeat center center;
+            background-size: contain;
+        }
+
+        /* Drop Zones */
+        .drop-zone {
+            position: absolute;
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            width: 50px;
+            height: 50px;
+        }
+
+        .drop-zone.hovered {
+            background: rgba(10, 255, 10, 0.2);
+            border-color: var(--neon-green);
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .drop-zone.filled {
+            background: var(--neon-green);
+            border: none;
+            box-shadow: 0 0 20px var(--neon-green);
+            color: black;
+            font-weight: bold;
+            font-size: 0.6rem;
+            animation: pulse 2s infinite;
+        }
+
+        /* Right Panel: Data Core (General Knowledge) */
+        .knowledge {
+            width: 300px;
+        }
+
+        .fact-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02));
+            border-left: 4px solid var(--neon-purple);
+            padding: 15px;
+            margin-bottom: 15px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .fact-card h4 {
+            margin: 0 0 5px 0;
+            color: var(--neon-purple);
+        }
+
+        .fact-card p {
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 10px var(--neon-green); }
+            50% { box-shadow: 0 0 25px var(--neon-green); }
+            100% { box-shadow: 0 0 10px var(--neon-green); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Modal */
+        #victory-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        #victory-modal h2 {
+            font-family: 'Orbitron';
+            font-size: 4rem;
+            color: var(--neon-green);
+            margin-bottom: 20px;
+        }
+
+        #victory-modal button {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-family: 'Orbitron';
+            background: var(--neon-blue);
+            border: none;
+            color: black;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <header>
+        <h1>Bio-Mecha Builder <span style="font-size: 0.5em; opacity: 0.7;">// Div A</span></h1>
+        <div class="score-board">Systems Online: <span id="score">0</span>%</div>
+    </header>
+
+    <main>
+        <!-- Muscle Bank -->
+        <aside class="panel sidebar">
+            <div class="section-title">Components</div>
+            <div id="muscle-list">
+                <!-- JS will populate this -->
+            </div>
+        </aside>
+
+        <!-- Scanner / Body -->
+        <section class="panel scanner">
+            <div class="view-controls">
+                <button class="view-btn active" onclick="switchView('front')">FRONT VIEW</button>
+                <button class="view-btn" onclick="switchView('back')">BACK VIEW</button>
+            </div>
+            <div class="body-outline" id="skeleton-target">
+                <!-- JS will populate drop zones -->
+            </div>
+        </section>
+
+        <!-- General Knowledge -->
+        <aside class="panel knowledge">
+            <div class="section-title">Data Core</div>
+            <div id="fact-container">
+                <div class="fact-card">
+                    <h4>Instruction</h4>
+                    <p>Drag the muscle chips from the left to the correct glowing zones on the body scan.</p>
+                </div>
+                <button onclick="nextFact()" style="width:100%; padding:10px; background:var(--neon-purple); border:none; color:white; font-family:'Orbitron'; cursor:pointer;">ACCESS NEXT FILE</button>
+            </div>
+        </aside>
+    </main>
+
+    <div id="victory-modal">
+        <h2>MISSION COMPLETE</h2>
+        <p style="color:white; font-size: 1.2rem; margin-bottom: 30px;">Anatomy Integration: 100% // Ready for Competition</p>
+        <button onclick="location.reload()">REBOOT SYSTEM</button>
+    </div>
+
+    <script>
+        // --- DATA SETS ---
+
+        const muscleData = {
+            front: [
+                { id: 'deltoid-f', name: 'Deltoid', top: '18%', left: '76%' },
+                { id: 'deltoid-f2', name: 'Deltoid', top: '18%', left: '24%' },
+                { id: 'pectoralis', name: 'Pectoralis Major', top: '22%', left: '50%' }, // Chest
+                { id: 'biceps', name: 'Biceps', top: '28%', left: '78%' },
+                { id: 'rectus-ab', name: 'Rectus Abdominis', top: '35%', left: '50%' }, // Abs
+                { id: 'quadriceps', name: 'Quadriceps', top: '55%', left: '38%' }, // Thighs
+                { id: 'tibialis', name: 'Tibialis Anterior', top: '75%', left: '35%' } // Shin area (simplified)
+            ],
+            back: [
+                { id: 'trapezius', name: 'Trapezius', top: '15%', left: '50%' }, // Upper back/neck
+                { id: 'deltoid-b', name: 'Deltoid (Back)', top: '18%', left: '24%' },
+                { id: 'triceps', name: 'Triceps', top: '28%', left: '20%' },
+                { id: 'latissimus', name: 'Latissimus Dorsi', top: '30%', left: '50%' }, // Mid back
+                { id: 'gluteus', name: 'Gluteus Maximus', top: '45%', left: '50%' }, // Butt
+                { id: 'hamstring', name: 'Hamstrings', top: '55%', left: '60%' }, // Back of thigh
+                { id: 'gastrocnemius', name: 'Gastrocnemius', top: '75%', left: '62%' } // Calf
+            ]
+        };
+
+        const generalKnowledge = [
+            { title: "The 3 Types", text: "There are 3 types of muscle: Skeletal (moves bones), Cardiac (heart), and Smooth (organs)." },
+            { title: "Voluntary?", text: "Skeletal muscles are 'Voluntary' (you choose to move them). Cardiac and Smooth are 'Involuntary'." },
+            { title: "Teamwork", text: "Muscles work in pairs! When the Biceps contracts (shortens), the Triceps relaxes." },
+            { title: "Fuel Up", text: "Calcium and Vitamin D are crucial for strong bones and muscle function. Drink that milk!" },
+            { title: "Largest Muscle", text: "The Gluteus Maximus (buttock) is the largest muscle in the body." },
+            { title: "Strongest Muscle", text: "Based on weight, the Masseter (jaw muscle) is the strongest!" },
+            { title: "Tendon vs Ligament", text: "Tendons connect Muscle to Bone. Ligaments connect Bone to Bone." },
+            { title: "Heart Beat", text: "Cardiac muscle never gets tired. It contracts automatically to pump blood." }
+        ];
+
+        // --- STATE MANAGEMENT ---
+
+        let currentView = 'front';
+        let placedMuscles = new Set();
+        let totalMuscles = muscleData.front.length + muscleData.back.length;
+
+        // --- INITIALIZATION ---
+
+        function init() {
+            renderMuscles();
+            renderDropZones();
+            setupDragAndDrop();
+        }
+
+        // --- RENDER FUNCTIONS ---
+
+        function renderMuscles() {
+            const list = document.getElementById('muscle-list');
+            list.innerHTML = '';
+           
+            // Combine lists but filter out duplicates by name for the bank (e.g. only one "Deltoid" chip needed)
+            const allMuscles = [...muscleData.front, ...muscleData.back];
+            const uniqueNames = [...new Set(allMuscles.map(m => m.name))];
+
+            uniqueNames.sort().forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'muscle-chip';
+                div.draggable = true;
+                div.innerText = name;
+                div.dataset.name = name;
+                div.id = `chip-${name.replace(/\s/g, '')}`;
+               
+                div.addEventListener('dragstart', dragStart);
+                list.appendChild(div);
+            });
+        }
+
+        function renderDropZones() {
+            const container = document.getElementById('skeleton-target');
+            container.innerHTML = '';
+
+            const data = muscleData[currentView];
+
+            data.forEach(muscle => {
+                const zone = document.createElement('div');
+                zone.className = 'drop-zone';
+                zone.style.top = muscle.top;
+                zone.style.left = muscle.left;
+                zone.dataset.targetName = muscle.name;
+                zone.dataset.id = muscle.id;
+               
+                // If already placed, style it
+                if(placedMuscles.has(muscle.id)) {
+                    zone.classList.add('filled');
+                    zone.innerText = "OK";
+                } else {
+                    zone.innerText = "?";
+                }
+
+                zone.addEventListener('dragover', dragOver);
+                zone.addEventListener('dragleave', dragLeave);
+                zone.addEventListener('drop', drop);
+
+                container.appendChild(zone);
+            });
+        }
+
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+           
+            // Animate transition
+            const skeleton = document.getElementById('skeleton-target');
+            skeleton.style.opacity = 0;
+            setTimeout(() => {
+                renderDropZones();
+                skeleton.style.opacity = 1;
+            }, 300);
+        }
+
+        // --- DRAG AND DROP LOGIC ---
+
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.dataset.name);
+            e.target.style.opacity = '0.5';
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+            if(!e.target.classList.contains('filled')) {
+                e.target.classList.add('hovered');
+            }
+        }
+
+        function dragLeave(e) {
+            e.target.classList.remove('hovered');
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            const draggedName = e.dataTransfer.getData('text/plain');
+            const targetZone = e.target;
+           
+            targetZone.classList.remove('hovered');
+
+            if (targetZone.classList.contains('filled')) return;
+
+            // Logic: Does the dragged name match the target name?
+            if (draggedName === targetZone.dataset.targetName) {
+                // Success
+                targetZone.classList.add('filled');
+                targetZone.innerText = draggedName.substring(0, 3).toUpperCase();
+                placedMuscles.add(targetZone.dataset.id);
+               
+                playSound('success');
+                updateScore();
+                checkWin();
+            } else {
+                // Fail
+                targetZone.style.borderColor = 'red';
+                setTimeout(() => targetZone.style.borderColor = 'rgba(255,255,255,0.3)', 500);
+            }
+
+            // Reset draggable opacity
+            const chip = document.querySelector(`.muscle-chip[data-name="${draggedName}"]`);
+            if(chip) chip.style.opacity = '1';
+        }
+
+        function updateScore() {
+            const percentage = Math.floor((placedMuscles.size / totalMuscles) * 100);
+            document.getElementById('score').innerText = percentage;
+        }
+
+        function checkWin() {
+            if (placedMuscles.size === totalMuscles) {
+                setTimeout(() => {
+                    document.getElementById('victory-modal').style.display = 'flex';
+                    createFireworks();
+                }, 500);
+            }
+        }
+
+        // --- KNOWLEDGE BASE ---
+       
+        function nextFact() {
+            const container = document.getElementById('fact-container');
+            // Remove old cards except button
+            const oldCards = container.querySelectorAll('.fact-card');
+            oldCards.forEach(c => c.remove());
+
+            const randomFact = generalKnowledge[Math.floor(Math.random() * generalKnowledge.length)];
+           
+            const card = document.createElement('div');
+            card.className = 'fact-card';
+            card.innerHTML = `<h4>${randomFact.title}</h4><p>${randomFact.text}</p>`;
+           
+            container.prepend(card);
+        }
+
+        function playSound(type) {
+            // Simple synth beep using Web Audio API (no external files needed)
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+           
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+           
+            if (type === 'success') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            }
+        }
+
+        // --- PARTICLE BACKGROUND ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.color = Math.random() > 0.5 ? '#00f3ff' : '#bc13fe';
+                this.alpha = Math.random() * 0.5;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < 100; i++) particles.push(new Particle());
+
+        function animateBG() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateBG);
+        }
+
+        animateBG();
+       
+        // Load initial fact
+        nextFact();
+        init();
+
+    </script>
+</body>
+</html>
